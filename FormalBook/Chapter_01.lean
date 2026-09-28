@@ -92,23 +92,14 @@ theorem infinity_of_primes₂  (k n : ℕ) (h : k < n) : Coprime (F n) (F k) := 
 
 using Mersenne numbers
 -/
-lemma ZMod.one_ne_zero (q : ℕ) [Fact (1 < q)] : (1 : ZMod q) ≠ 0 := by
-  intro h
-  have := ZMod.val_one q ▸ (ZMod.val_eq_zero (1 : ZMod q)).mpr h
-  linarith
 
 lemma ZMod.two_ne_one (q : ℕ)  [Fact (1 < q)] : (2 : ZMod q) ≠ 1 := by
-  intro h1
-  have h : (2 - 1 : ZMod q) = 0 := Iff.mpr sub_eq_zero h1
-  norm_num at h
-
-lemma sub_one_le_sub_one {n m : ℕ} : n ≤ m → n - 1 ≤ m - 1 :=
-  fun h ↦ pred_le_pred h
-
+  rw [←sub_ne_zero]
+  norm_num
 
 theorem infinity_of_primes₃:
   ¬ (∃ (p : ℕ), Nat.Prime p ∧ (∀ (q : ℕ), (Nat.Prime q) → q ≤ p)) := by
-  simp only [not_exists, not_and, not_forall, not_le, exists_prop]
+  push Not
   intros p hp
   have : Fact (Nat.Prime p) := by exact { out := hp }
   let m := mersenne p
@@ -117,36 +108,17 @@ theorem infinity_of_primes₃:
   let q := m.minFac
   have hq : q.Prime := minFac_prime <| Nat.ne_of_gt <| one_lt_mersenne.mpr <| Prime.one_lt hp
   have : Fact (Nat.Prime q) := by exact { out := hq }
-  have h_mod_q : 2 ^ p  ≡ 1 [MOD q] := by
-    have : (2^p - 1) % q = 0 :=  mod_eq_zero_of_dvd (minFac_dvd m)
-    change (2^p - 1) ≡ 0 [MOD q] at this
-    rw [modEq_iff_dvd, dvd_iff_exists_eq_mul_left] at *
-    obtain ⟨c, hc⟩ := this
-    use c
-    simp only [CharP.cast_eq_zero, zero_sub] at hc
-    simp [cast_one, cast_pow, cast_ofNat, hc.symm]
-  have h_mod_q' : (2 : (ZMod q)) ^ p = 1 := by
-    have := (ZMod.natCast_eq_natCast_iff _ _ _).mpr h_mod_q
-    norm_cast at this
-    rw [← this, cast_pow, cast_ofNat]
+  have h_mod_q : (2 : (ZMod q)) ^ p = 1 := by
+    suffices 2 ^ p ≡ 1 [MOD q] by
+      have := (ZMod.natCast_eq_natCast_iff _ _ _).mpr this
+      simpa using this
+    have : (2 ^ p - 1) ≡ 0 [MOD q] := mod_eq_zero_of_dvd (minFac_dvd m)
+    simpa [modEq_iff_dvd] using this
   have : (2 : (ZMod q)) * (2 ^ (p - 1)) = 1 := by
-    convert h_mod_q'
-    nth_rw 1 [← pow_one 2]
-    rw [← pow_add 2 1 (p - 1)]
-    congr
-    exact add_sub_of_le <| Prime.pos hp
+    rw [←pow_succ' 2, Nat.sub_add_cancel <| Prime.pos hp, h_mod_q]
   let two := Units.mkOfMulEqOne (2 : (ZMod q)) (2 ^ (p - 1)) this
-  have two_desc : ↑two = (2 : (ZMod q)) := by
-    convert Units.val_mkOfMulEqOne this
-  have h_two : two ^ p = 1 := by
-    ext
-    push_cast
-    rw [two_desc]
-    exact h_mod_q'
-  have two_ne_one : two ≠ 1 := by
-    by_contra h
-    rw [Units.ext_iff, two_desc] at h
-    exact (ZMod.two_ne_one q) h
+  have h_two : two ^ p = 1 := Units.val_inj.mp h_mod_q
+  have two_ne_one : two ≠ 1 := Units.ext_iff.not.mpr <| ZMod.two_ne_one q
   have h_piv_div_q_sub_one : p ∣ q - 1 := by
     -- The following shorter proof would work, but we want to use Lagrange's theorem
     -- convert ZMod.orderOf_units_dvd_card_sub_one two
@@ -159,12 +131,10 @@ theorem infinity_of_primes₃:
     · rw [card_eq_fintype_card, ZMod.card_units_eq_totient]
       exact (totient_prime hq).symm
   refine ⟨q, minFac_prime <| Nat.ne_of_gt ?_, ?_⟩
-  · calc 1 < 2^2 - 1 := one_lt_succ_succ 1
-        _  ≤ 2^p - 1 := sub_one_le_sub_one <| Nat.pow_le_pow_right (succ_pos 1) (Prime.two_le hp)
-  · have h2q : 2 ≤ q := Prime.two_le <| minFac_prime <| Nat.ne_of_gt <| lt_of_succ_lt <|
-      Nat.sub_le_sub_right ((Nat.pow_le_pow_right (succ_pos 1) (Prime.two_le hp))) 1
-    exact lt_of_le_of_lt (Nat.le_of_dvd  (Nat.sub_pos_of_lt <| h2q) h_piv_div_q_sub_one)
-      <| pred_lt <| Nat.ne_of_gt <| Nat.le_of_lt h2q
+  · exact one_lt_mersenne.2 <| Nat.Prime.one_lt hp
+  · apply Nat.lt_of_le_sub_one <| Nat.Prime.pos hq
+    apply Nat.le_of_dvd _ h_piv_div_q_sub_one
+    exact Nat.sub_pos_of_lt <| Nat.Prime.one_lt hq
 
 /-!
 ### Fourth proof

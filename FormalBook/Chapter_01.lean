@@ -198,9 +198,14 @@ lemma summable_invRealHom_smoothNumbers (N : ℕ) : Summable (fun (m : Nat.smoot
   rw [this, Real.norm_of_nonneg (inv_nonneg.2 (Nat.cast_nonneg _))]
   exact inv_lt_one_of_one_lt₀ (mod_cast hp.one_lt)
 
-theorem f_abs_summable (x : ℝ) (n : ℕ) (hxge : x ≥ ↑n) (hxlt : x < ↑n + 1)
-  (f : ArithmeticFunction ℝ) (hf : f.toFun = (S₁ x).indicator fun y ↦ (↑y)⁻¹) :
-  Summable fun x ↦ ‖f x‖ := by
+noncomputable def f (x : ℝ) : ArithmeticFunction ℝ where
+  toFun := (S₁ x).indicator fun y ↦ (↑y)⁻¹
+  map_zero' := by simp [Set.indicator_apply_eq_zero]
+
+lemma f_def (x : ℝ) (y : ℕ) : f x y = if y ∈ (S₁ x) then (↑y)⁻¹ else 0 := rfl
+
+theorem f_abs_summable (x : ℝ) (n : ℕ) (hxge : x ≥ ↑n) (hxlt : x < ↑n + 1) :
+  Summable fun y ↦ ‖(f x) y‖ := by
   have h_floor : ⌊x⌋₊ = n := by
     have h1 : (n : ℝ) ≤ x := hxge
     have h2 : x < (n : ℝ) + 1 := hxlt
@@ -211,16 +216,36 @@ theorem f_abs_summable (x : ℝ) (n : ℕ) (hxge : x ≥ ↑n) (hxlt : x < ↑n 
     summable_invRealHom_smoothNumbers (n + 1)
   have h_ind : Summable ((Nat.smoothNumbers (n + 1)).indicator (fun m : ℕ ↦ ‖(m : ℝ)⁻¹‖)) :=
     summable_subtype_iff_indicator.mp h_summable
-  have h_eq : (fun x ↦ ‖f x‖) = (Nat.smoothNumbers (n + 1)).indicator (fun m : ℕ ↦ ‖(m : ℝ)⁻¹‖) := by
+  have h_eq : (fun y ↦ ‖(f x) y‖) = (Nat.smoothNumbers (n + 1)).indicator (fun m : ℕ ↦ ‖(m : ℝ)⁻¹‖) := by
     rw [← hS]
     ext m
-    have : f m = f.toFun m := rfl
-    rw [this, hf, Set.indicator_apply, Set.indicator_apply]
+    have : (f x) m = (f x).toFun m := rfl
+    rw [f_def, Set.indicator_apply]
     split_ifs with hm
     · rfl
     · simp
   rw [h_eq]
   exact h_ind
+
+lemma f_one_eq_one (x : ℝ) : (f x) 1 = 1 := by
+  have : 1 ∈ S₁ x := fun p Hp contra => (Nat.Prime.not_dvd_one Hp contra).elim
+  simp [f_def, this]
+
+lemma f_multiplicative (x : ℝ) : (f x).IsMultiplicative := by
+  refine ⟨f_one_eq_one x, ?_⟩
+  intro m n hmn
+  rw [f_def, S₁, Set.mem_ofPred_eq, cast_mul, mul_inv]
+  split_ifs with h
+  · congr <;> rw [f_def, Eq.comm] <;> apply ite_eq_left
+    · exact fun p hp hpm ↦ h p hp (Nat.dvd_mul_right_of_dvd hpm n)
+    · exact fun p hp hpm ↦ h p hp (Nat.dvd_mul_left_of_dvd hpm m)
+  · rw [zero_eq_mul]
+    push Not at h
+    obtain ⟨p, hp, hpmn, hxp⟩ := h
+    rcases hp.dvd_or_dvd hpmn with hpm | hpn <;> [left; right]
+      <;> rw [f_def, S₁, Set.mem_ofPred_eq] <;> apply ite_eq_right <;> push Not
+    · use p, hp, hpm, hxp
+    · use p, hp, hpn, hxp
 
 lemma exists_image_primes_eq_primesBelow (n : ℕ) :
   ∃ (s : Finset Nat.Primes), s.image (fun p : Nat.Primes ↦ p.1) = n.primesBelow := by
@@ -234,62 +259,12 @@ lemma exists_image_primes_eq_primesBelow (n : ℕ) :
   · intro ha
     exact ⟨⟨a, ha.2⟩, ha, rfl⟩
 
-lemma arithmetic_f (x: ℝ) (n: ℕ) (hxlt : x < n + 1) : ∃ f: ArithmeticFunction ℝ, f.toFun = (S₁ x).indicator (fun y ↦ (↑y)⁻¹) := by {
-    exists ZeroHom.mk ((S₁ x).indicator (fun y: ℕ ↦ (y: ℝ)⁻¹)) (by
-  {
-    have: ¬ (0 ∈ S₁ x) := by {
-      unfold S₁
-      intro h
-      have: ∃ p, Nat.Prime p ∧ p > x := by {
-        have := @Nat.exists_prime_gt_modEq_one 1 (n+1) (by bound)
-        obtain ⟨p, hp⟩ := this
-        obtain ⟨pprime, ⟨pgt, _⟩⟩ := hp
-        have: (p: ℝ) > (n: ℝ)+1 := by {
-          rify at pgt
-          assumption
-        }
-        have: ↑p > x := by bound
-        exists p
-      }
-      obtain ⟨p, ⟨pprime, pgt⟩⟩ := this
-      have hle := h p pprime (dvd_zero p)
-      linarith
-    }
-    apply Set.indicator_of_notMem
-    assumption
-  })
-  }
-
-theorem euler_product_rearrangement (x: ℝ) (n: ℕ) (hxge : x ≥ n) (hxlt : x < n + 1): ∑' m : (S₁ x), (m : ℝ)⁻¹ = (∏ p ∈ primesBelow (⌊x⌋.natAbs+1), (∑' k : ℕ, (p ^ k : ℝ)⁻¹)) := by {
-  have:= _root_.tsum_subtype (S₁ x) (fun y => (y:ℝ)⁻¹)
-  rewrite [this]
-  clear this
-  have hf:= arithmetic_f x n hxlt
-  obtain ⟨f, hf⟩ := hf
-  have f_one_eq_one: f.toFun 1 = 1 := by {
-        rewrite [hf]; clear hf
-        have: 1 ∈ S₁ x := fun p Hp contra => (Nat.Prime.not_dvd_one Hp contra).elim
-        simp [this]
-      }
-  have f_mul: f.IsMultiplicative := by {
-    unfold ArithmeticFunction.IsMultiplicative
-    constructor
-    .
-      bound
-    . clear hxge hxlt n
-      intro m n hmn
-      -- By definition of $f$, we know that $f(mn) = 1/(mn)$ if $mn \in S₁(x)$ and $0$ otherwise.
-      have h_f_mn : f (m * n) = if m * n ∈ S₁ x then (1 / (m * n : ℝ)) else 0 := by
-        aesop;
-      by_cases hm : m = 0 <;> by_cases hn : n = 0 <;> simp_all +decide [ S₁ ];
-      split_ifs <;> simp_all +decide [ Nat.Prime.dvd_mul ];
-      · bound
-      · grind +ring
-  }
-  have f_sum: Summable (fun x: ℕ => ‖f x‖) := by exact f_abs_summable x n hxge hxlt f hf
-  have euler_rewrite:= ArithmeticFunction.IsMultiplicative.eulerProduct_tprod f_mul f_sum
-  clear f_mul f_sum
-  have: ∑' (n : ℕ), f n = ∑' (n : ℕ), (S₁ x).indicator (fun y ↦ (↑y)⁻¹) n := by exact congrFun (congrArg (@tsum ℝ ℕ Real.instAddCommMonoid PseudoMetricSpace.toUniformSpace.toTopologicalSpace) hf) (SummationFilter.unconditional ℕ)
+theorem euler_product_rearrangement (x: ℝ) (n: ℕ) (hxge : x ≥ n) (hxlt : x < n + 1) : ∑' m : (S₁ x), (m : ℝ)⁻¹ = (∏ p ∈ primesBelow (⌊x⌋.natAbs+1), (∑' k : ℕ, (p ^ k : ℝ)⁻¹)) := by {
+  rw [tsum_subtype (S₁ x) (fun y => (y:ℝ)⁻¹)]
+  have f_sum: Summable (fun y: ℕ => ‖(f x) y‖) := by exact f_abs_summable x n hxge hxlt
+  have euler_rewrite := (f_multiplicative x).eulerProduct_tprod f_sum
+  clear f_sum
+  have: ∑' (n : ℕ), (f x) n = ∑' (n : ℕ), (S₁ x).indicator (fun y ↦ (↑y)⁻¹) n := rfl
   rewrite [this] at euler_rewrite
   clear this
   rewrite [← euler_rewrite]
@@ -297,7 +272,7 @@ theorem euler_product_rearrangement (x: ℝ) (n: ℕ) (hxge : x ≥ n) (hxlt : x
   have hs : ∃ s : Finset Nat.Primes, s.image (fun i : Nat.Primes ↦ i.1) = (⌊x⌋.natAbs + 1).primesBelow :=
     exists_image_primes_eq_primesBelow (Int.natAbs ⌊x⌋ + 1)
   obtain ⟨s, hs⟩ := hs
-  have f_eq_one: ∀ p ∉ s, ∑' (e : ℕ), f (↑p ^ e) = 1 := by
+  have f_eq_one: ∀ p ∉ s, ∑' (e : ℕ), (f x) (↑p ^ e) = 1 := by
     intro p hp
     have pprime : Nat.Prime (p : ℕ) := p.2
     have hp_not_below : (p : ℕ) ∉ (⌊x⌋.natAbs + 1).primesBelow := by
@@ -311,7 +286,7 @@ theorem euler_product_rearrangement (x: ℝ) (n: ℕ) (hxge : x ≥ n) (hxlt : x
       by_contra hlt
       have : (p : ℕ) < ⌊x⌋.natAbs + 1 := by omega
       exact hp_not_below ⟨this, pprime⟩
-    have h_tsum_zero : ∀ e, e ∉ ({0}: Finset ℕ) → f.toFun (↑p^e) = 0 := by
+    have h_tsum_zero : ∀ e, e ∉ ({0}: Finset ℕ) → (f x) (↑p^e) = 0 := by
       intro e he
       have enz : e ≠ 0 := by
         intro he0; subst he0; exact he (Finset.mem_singleton_self 0)
@@ -325,13 +300,13 @@ theorem euler_product_rearrangement (x: ℝ) (n: ℕ) (hxge : x ≥ n) (hxlt : x
           have : (p : ℕ) > ⌊x⌋.natAbs := by omega
           omega
         linarith
-      rw [hf]
+      rw [f_def]
       simp [pnin]
-    have ht : ∑' e : ℕ, f.toFun (↑p ^ e) = ∑ e ∈ {0}, f.toFun (↑p ^ e) :=
+    have ht : ∑' e : ℕ, (f x) (↑p ^ e) = ∑ e ∈ {0}, (f x) (↑p ^ e) :=
       tsum_eq_sum (s := {0}) h_tsum_zero
     simp only [Finset.sum_singleton, pow_zero, f_one_eq_one] at ht
     exact ht
-  have tprod_rewrite := @tprod_eq_prod ℝ Nat.Primes _ _ (fun p : Nat.Primes => ∑' (e : ℕ), f (p.1 ^ e)) (SummationFilter.unconditional Nat.Primes) _ s f_eq_one
+  have tprod_rewrite := @tprod_eq_prod ℝ Nat.Primes _ _ (fun p : Nat.Primes => ∑' (e : ℕ), (f x) (p.1 ^ e)) (SummationFilter.unconditional Nat.Primes) _ s f_eq_one
   rw [tprod_rewrite]
   have h_prod_img : (∏ p ∈ (⌊x⌋.natAbs + 1).primesBelow, ∑' k : ℕ, ((p : ℝ) ^ k)⁻¹) =
       ∏ y ∈ s, ∑' k : ℕ, ((y.1 : ℝ) ^ k)⁻¹ := by
@@ -362,8 +337,8 @@ theorem euler_product_rearrangement (x: ℝ) (n: ℕ) (hxge : x ≥ n) (hxlt : x
       exact (Nat.dvd_prime hy_prime).mp this |>.resolve_left (Nat.Prime.ne_one hp_prime)
     rw [hp_eq]
     exact hy_le
-  have : f.toFun (y.1 ^ e) = ((y.1 : ℝ) ^ e)⁻¹ := by
-    have : f.toFun = (S₁ x).indicator (fun y ↦ (y : ℝ)⁻¹) := hf
+  have : (f x) (y.1 ^ e) = ((y.1 : ℝ) ^ e)⁻¹ := by
+    have : (f x) = (S₁ x).indicator (fun y ↦ (y : ℝ)⁻¹) := rfl
     rw [this, Set.indicator_of_mem h_mem_S1]
     push_cast; rfl
   exact this
@@ -395,10 +370,8 @@ theorem sum_le_infinite_sum (x: ℝ) (n: ℕ) (hxge : x ≥ n) (hxlt : x < n + 1
   rw [_root_.tsum_subtype (S₁ x) (fun y => (y:ℝ)⁻¹)]
   have hsum : Summable ((S₁ x).indicator (fun y : ℕ => (y:ℝ)⁻¹)) := by
     apply Summable.of_norm
-    obtain ⟨f, hf⟩ := arithmetic_f x n hxlt
-    have sum := f_abs_summable x n hxge hxlt f hf
-    have : ∀ i, f i = f.toFun i := fun i ↦ rfl
-    simp only [this, hf] at sum
+    have sum := f_abs_summable x n hxge hxlt
+    simp only [f_def] at sum
     exact sum
   have hmem : ∀ k ∈ Icc 1 n, k ∈ S₁ x := by
     intro k hk p pprime pdvd

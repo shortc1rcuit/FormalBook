@@ -192,13 +192,11 @@ lemma norm_invRealHom_prime_lt_one (p : ℕ) (hp : Nat.Prime p) : ‖invRealHom 
 noncomputable def invRealMonoidHom : ℕ →* ℝ := invRealHom.toMonoidHom
 
 lemma summable_invRealHom_smoothNumbers (N : ℕ) : Summable (fun (m : Nat.smoothNumbers N) ↦ ‖invRealHom m‖) := by
-  have h : ∀ {p : ℕ}, Nat.Prime p → ‖invRealMonoidHom p‖ < 1 := by
-  intro p hp
+  refine (EulerProduct.summable_and_hasSum_smoothNumbers_prod_primesBelow_geometric
+    (f := invRealMonoidHom) (fun {p} hp ↦ ?_) N).1
   have : invRealMonoidHom p = (p : ℝ)⁻¹ := rfl
   rw [this, Real.norm_of_nonneg (inv_nonneg.2 (Nat.cast_nonneg _))]
   exact inv_lt_one_of_one_lt₀ (mod_cast hp.one_lt)
-  have := (EulerProduct.summable_and_hasSum_smoothNumbers_prod_primesBelow_geometric (f := invRealMonoidHom) h N).1
-  exact this
 
 theorem f_abs_summable (x : ℝ) (n : ℕ) (hxge : x ≥ ↑n) (hxlt : x < ↑n + 1)
   (f : ArithmeticFunction ℝ) (hf : f.toFun = (S₁ x).indicator fun y ↦ (↑y)⁻¹) :

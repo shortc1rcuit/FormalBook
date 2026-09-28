@@ -198,13 +198,13 @@ lemma summable_invRealHom_smoothNumbers (N : ℕ) : Summable (fun (m : Nat.smoot
   rw [this, Real.norm_of_nonneg (inv_nonneg.2 (Nat.cast_nonneg _))]
   exact inv_lt_one_of_one_lt₀ (mod_cast hp.one_lt)
 
-noncomputable def f (x : ℝ) : ArithmeticFunction ℝ where
+private noncomputable def f (x : ℝ) : ArithmeticFunction ℝ where
   toFun := (S₁ x).indicator fun y ↦ (↑y)⁻¹
   map_zero' := by simp [Set.indicator_apply_eq_zero]
 
-lemma f_def (x : ℝ) (y : ℕ) : f x y = if y ∈ (S₁ x) then (↑y)⁻¹ else 0 := rfl
+private lemma f_def (x : ℝ) (y : ℕ) : f x y = if y ∈ (S₁ x) then (↑y)⁻¹ else 0 := rfl
 
-theorem f_abs_summable (x : ℝ) (n : ℕ) (hxge : x ≥ ↑n) (hxlt : x < ↑n + 1) :
+private theorem f_abs_summable (x : ℝ) (n : ℕ) (hxge : x ≥ ↑n) (hxlt : x < ↑n + 1) :
   Summable fun y ↦ ‖(f x) y‖ := by
   have h_floor : ⌊x⌋₊ = n := by
     have h1 : (n : ℝ) ≤ x := hxge
@@ -227,11 +227,11 @@ theorem f_abs_summable (x : ℝ) (n : ℕ) (hxge : x ≥ ↑n) (hxlt : x < ↑n 
   rw [h_eq]
   exact h_ind
 
-lemma f_one_eq_one (x : ℝ) : (f x) 1 = 1 := by
+private lemma f_one_eq_one (x : ℝ) : (f x) 1 = 1 := by
   have : 1 ∈ S₁ x := fun p Hp contra => (Nat.Prime.not_dvd_one Hp contra).elim
   simp [f_def, this]
 
-lemma f_multiplicative (x : ℝ) : (f x).IsMultiplicative := by
+private lemma f_multiplicative (x : ℝ) : (f x).IsMultiplicative := by
   refine ⟨f_one_eq_one x, ?_⟩
   intro m n hmn
   rw [f_def, S₁, Set.mem_ofPred_eq, cast_mul, mul_inv]

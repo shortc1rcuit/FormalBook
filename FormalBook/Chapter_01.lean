@@ -150,7 +150,7 @@ noncomputable def primeCountingReal (x : ℝ) : ℕ :=
 /-- The set of natural numbers whose prime factors are all less than or equal to `x`. -/
 def S₁ (x : ℝ) : Set ℕ :=
  { n | ∀ p, Nat.Prime p → p ∣ n → p ≤ x }
-/-- The inferse function is a homomorphism. -/
+/-- The inverse function is a homomorphism. -/
 noncomputable def invRealHom : ℕ →*₀ ℝ :=
   { toFun := fun n => (n : ℝ)⁻¹
     map_one' := by

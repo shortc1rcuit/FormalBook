@@ -167,30 +167,20 @@ lemma S1_eq_smoothNumbers (x : ℝ) : S₁ x = Nat.smoothNumbers (⌊x⌋₊ + 1
   simp only [S₁, Nat.smoothNumbers, Set.mem_ofPred_eq]
   constructor
   · intro hn
-    have hn0 : n ≠ 0 := by
-      intro hn0
+    constructor
+    · contrapose! hn
       obtain ⟨p, hp_le, hp_prime⟩ := Nat.exists_infinite_primes (⌊x⌋₊ + 1)
-      have hle := hn p hp_prime (hn0 ▸ dvd_zero p)
-      have : (p : ℝ) ≤ x := hle
-      have : p ≤ ⌊x⌋₊ := Nat.le_floor this
-      omega
-    refine ⟨hn0, ?_⟩
-    intro p hp
-    have hp_prime : Nat.Prime p := Nat.prime_of_mem_primeFactorsList hp
-    have hp_dvd : p ∣ n := Nat.dvd_of_mem_primeFactorsList hp
-    have hle : (p : ℝ) ≤ x := hn p hp_prime hp_dvd
-    have : p ≤ ⌊x⌋₊ := Nat.le_floor hle
-    omega
+      use p, hp_prime, hn ▸ dvd_zero p, lt_of_floor_lt hp_le
+    refine fun p hp ↦ Nat.lt_succ_of_le <| Nat.le_floor (hn _ ?_ ?_)
+    · exact Nat.prime_of_mem_primeFactorsList hp
+    · exact Nat.dvd_of_mem_primeFactorsList hp
   · rintro ⟨hn0, hn⟩ p hp_prime hp_dvd
     have hp_mem : p ∈ n.primeFactorsList :=
       (Nat.mem_primeFactorsList hn0).2 ⟨hp_prime, hp_dvd⟩
-    have hlt : p < ⌊x⌋₊ + 1 := hn p hp_mem
-    have hp_le : p ≤ ⌊x⌋₊ := by omega
+    have hp_le : p ≤ ⌊x⌋₊ := le_of_lt_succ (hn p hp_mem)
     have hx0 : 0 ≤ x := by
-      by_contra hneg
-      have : ⌊x⌋₊ = 0 := Nat.floor_of_nonpos (by linarith)
-      have hp_pos := Nat.Prime.pos hp_prime
-      omega
+      contrapose! hp_le
+      exact Nat.floor_of_nonpos hp_le.le ▸ Nat.Prime.pos hp_prime
     exact le_trans (Nat.cast_le.mpr hp_le) (Nat.floor_le hx0)
 
 lemma norm_invRealHom_prime_lt_one (p : ℕ) (hp : Nat.Prime p) : ‖invRealHom p‖ < 1 := by

@@ -184,24 +184,19 @@ lemma S1_eq_smoothNumbers (x : ℝ) : S₁ x = Nat.smoothNumbers (⌊x⌋₊ + 1
     exact le_trans (Nat.cast_le.mpr hp_le) (Nat.floor_le hx0)
 
 lemma norm_invRealHom_prime_lt_one (p : ℕ) (hp : Nat.Prime p) : ‖invRealHom p‖ < 1 := by
-  erw [Real.norm_of_nonneg]
+  rw [Real.norm_of_nonneg]
   · exact inv_lt_one_of_one_lt₀ <| mod_cast hp.one_lt
   · exact inv_nonneg.2 <| Nat.cast_nonneg _
 
 /-- The inverse function is a monoid homomorphism. -/
-noncomputable def invRealMonoidHom : ℕ →* ℝ :=
-  { toFun := fun n => (n : ℝ)⁻¹
-    map_one' := by simp
-    map_mul' := by
-      intros x y
-      simp [mul_comm] }
+noncomputable def invRealMonoidHom : ℕ →* ℝ := invRealHom.toMonoidHom
 
 lemma summable_invRealHom_smoothNumbers (N : ℕ) : Summable (fun (m : Nat.smoothNumbers N) ↦ ‖invRealHom m‖) := by
   have h : ∀ {p : ℕ}, Nat.Prime p → ‖invRealMonoidHom p‖ < 1 := by
-    intro p hp
-    have : invRealMonoidHom p = (p : ℝ)⁻¹ := rfl
-    rw [this, Real.norm_of_nonneg (inv_nonneg.2 (Nat.cast_nonneg _))]
-    exact inv_lt_one_of_one_lt₀ (mod_cast hp.one_lt)
+  intro p hp
+  have : invRealMonoidHom p = (p : ℝ)⁻¹ := rfl
+  rw [this, Real.norm_of_nonneg (inv_nonneg.2 (Nat.cast_nonneg _))]
+  exact inv_lt_one_of_one_lt₀ (mod_cast hp.one_lt)
   have := (EulerProduct.summable_and_hasSum_smoothNumbers_prod_primesBelow_geometric (f := invRealMonoidHom) h N).1
   exact this
 

@@ -9,7 +9,6 @@ public import Mathlib.NumberTheory.LucasLehmer
 public import Mathlib.NumberTheory.EulerProduct.Basic
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Int.Lemmas
-import Mathlib.NumberTheory.PrimesCongruentOne
 import Mathlib.NumberTheory.SumPrimeReciprocals
 import Mathlib.Algebra.Order.Group.Indicator
 
